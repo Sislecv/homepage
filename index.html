@@ -434,6 +434,8 @@ async function bootDosBox(){
     window.Dos(dosContainer,{
       autoStart:true,
       noCursor:true,
+      url:'dos/system.jsdos',
+      noSideEffects:true,
     });
 
     // Hide the toolbar/sidebar after render
