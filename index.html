@@ -137,16 +137,15 @@ canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crossha
 }
 @keyframes blink{50%{opacity:0}}
 
-/* js-dos chrome hiding */
-#dosContainer{width:100%;min-height:300px;position:relative;z-index:6}
-#dosContainer nav,#dosContainer aside,#dosContainer .sidebar,#dosContainer .toolbar,#dosContainer .menu,
-#dosContainer [class*="sidebar"],#dosContainer [class*="toolbar"]{display:none!important}
-#dosContainer .emulator{min-height:0!important;height:100%}
-
 @keyframes screenFlash{
   0%{background:#fff}15%{background:#afb}40%{background:#0a0a08}100%{background:#0a0a08}
 }
 .term-screen.flash{animation:screenFlash .5s ease-out}
+
+/* Hide js-dos chrome, only show the DOS canvas */
+#dosContainer{display:none;width:100%;position:relative;z-index:6}
+#dosContainer nav{display:none!important}
+#dosContainer > div:first-child{display:none!important}
 
 @media(max-width:640px){
   .name-overlay{font-size:16px}
@@ -344,7 +343,7 @@ const termScreen=document.getElementById('termScreen');
 const termClose=document.getElementById('termClose');
 const termMin=document.getElementById('termMin');
 const dosContainer=document.getElementById('dosContainer');
-let termOpen=false,dosInstance=null,dosReady=false;
+let termOpen=false,dosReady=false;
 
 const TERM=[
   '',
@@ -410,48 +409,31 @@ function showFallback(){
 
 async function bootDosBox(){
   termBody.style.display='block';
-  termBody.innerHTML='<span class="dim">Booting MS-DOS...</span>\n';
-  termBody.innerHTML+='<span class="dim">Loading</span><span class="dim" id="bootDots">...</span>\n';
+  termBody.innerHTML='<span class="dim">Booting MS-DOS...</span>\n<span class="dim">Loading</span><span class="dim" id="bootDots">...</span>\n';
   let dots=0,dotInt=setInterval(()=>{dots=(dots+1)%10;const d=document.getElementById('bootDots');if(d)d.textContent='.'.repeat(Math.min(dots,4));},300);
   try{
+    // Dynamically load js-dos v8
     if(typeof window.Dos==='undefined'){
       await new Promise((resolve,reject)=>{
         const s=document.createElement('script');
         s.src='dos/js-dos.js';
-        s.onload=resolve;s.onerror=()=>reject(new Error('load failed'));
+        s.onload=resolve;s.onerror=()=>reject(new Error('js-dos load failed'));
         document.head.appendChild(s);
       });
-      // Wait a tick for Dos to initialize
-      await new Promise(r=>setTimeout(r,100));
+      await new Promise(r=>setTimeout(r,200));
     }
     if(typeof window.Dos==='undefined')throw new Error('Dos not loaded');
-
     clearInterval(dotInt);
+    termBody.innerHTML='';
     termBody.style.display='none';
     dosContainer.style.display='block';
-
-    // Create js-dos in the container (auto-boots minimal DOS)
-    window.Dos(dosContainer,{
-      autoStart:true,
-      noCursor:true,
-      url:'dos/system.jsdos',
-      noSideEffects:true,
-    });
-
-    // Hide the toolbar/sidebar after render
-    setTimeout(()=>{
-      const canvases=dosContainer.querySelectorAll('canvas');
-      canvases.forEach(c=>{
-        c.style.width='100%';c.style.height='auto';c.style.maxWidth='100%';
-      });
-    },500);
-
+    window.Dos(dosContainer,{url:'dos/system.jsdos',autoStart:true,noCursor:true});
     dosReady=true;hintAlpha=0;
   }catch(e){
     clearInterval(dotInt);
-    console.warn('DOS failed:',e.message);
+    console.warn('DOS boot failed:',e.message);
     dosContainer.style.display='none';termBody.style.display='block';
-    termBody.innerHTML+='<span class="warn">Init failed. Fallback mode.</span>\n\n';
+    termBody.innerHTML+='<span class="warn">DOS boot failed. Fallback mode.</span>\n\n';
     showFallback();
   }
 }
@@ -466,11 +448,7 @@ function openTerminal(){
   bootDosBox();
 }
 
-function closeTerminal(){
-  termOpen=false;
-  termOverlay.classList.remove('open');
-  dosContainer.style.display='none';
-}
+function closeTerminal(){termOpen=false;termOverlay.classList.remove('open');dosContainer.style.display='none'}
 
 C.addEventListener('click',openTerminal);
 termClose.addEventListener('click',e=>{e.stopPropagation();closeTerminal()});
