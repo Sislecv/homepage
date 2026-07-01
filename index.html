@@ -93,10 +93,10 @@ canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crossha
 
 .term-title{
   display:flex;justify-content:space-between;align-items:center;
-  padding:2px 8px;
+  padding:1px 6px;
   background:#b8af9a;
   border-bottom:1px solid #a09884;
-  font:13px 'VT323',monospace;color:#332e22;letter-spacing:1px;
+  font:12px 'VT323',monospace;color:#332e22;letter-spacing:1px;
   position:relative;z-index:6;
 }
 .term-title .btns{display:flex;gap:4px}
@@ -428,7 +428,7 @@ async function bootDosBox(){
     termBody.innerHTML='';
     termBody.style.display='none';
     dosContainer.style.display='block';
-    window.Dos(dosContainer,{url:'dos/system.jsdos',autoStart:true,noCursor:true});
+    window.Dos(dosContainer,{url:'dos/digger.jsdos',autoStart:true,noCursor:true});
     dosReady=true;hintAlpha=0;
   }catch(e){
     clearInterval(dotInt);
