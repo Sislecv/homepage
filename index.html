@@ -430,11 +430,10 @@ async function bootDosBox(){
     termBody.style.display='none';
     dosContainer.style.display='block';
 
-    // Create js-dos in the container
+    // Create js-dos in the container (auto-boots minimal DOS)
     window.Dos(dosContainer,{
       autoStart:true,
       noCursor:true,
-      offscreenCanvas:true,
     });
 
     // Hide the toolbar/sidebar after render
