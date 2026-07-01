@@ -351,70 +351,155 @@ function render(ts){
   requestAnimationFrame(render);
 }
 
-// ── Terminal ────────────────────────────────────────────────────────
+// ── Interactive Terminal ────────────────────────────────────────────
 const termOverlay=document.getElementById('termOverlay');
 const termBody=document.getElementById('termBody');
 const termScreen=document.getElementById('termScreen');
 const termClose=document.getElementById('termClose');
 const termMin=document.getElementById('termMin');
-let termOpen=false;
+let termOpen=false,inputLine='',cmdHistory=[],histIdx=-1;
 
-const TERM=[
-  '',
-  '<span class="dim">Microsoft(R) MS-DOS 6.22</span>',
-  '<span class="dim">   (C)Copyright Microsoft Corp 1981-1995.</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">whoami</span>',
-  '<span class="output">sislecv</span>',
-  '<span class="output">senior engineer \u2022 ai orchestration</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">cat profile.txt</span>',
-  '<span class="output">Systems builder with a taste for terminal aesthetics.</span>',
-  '<span class="output">Engineer at the intersection of infrastructure, automation,</span>',
-  '<span class="output">and agentic AI. Ships production code, designs protocols,</span>',
-  '<span class="output">orchestrates swarms of sub-agents \u2014 one tty at a time.</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">dir /skills/</span>',
-  '',
-  '<span class="dim"> Directory of C:\\SKILLS</span>',
-  '',
-  '<span class="info">PYTHON.EXE</span>       <span class="dim"> 2026-07-01</span>  <span class="output">infra, tooling, automation</span>',
-  '<span class="info">NODEJS.EXE</span>       <span class="dim"> 2026-07-01</span>  <span class="output">runtimes, APIs, pipelines</span>',
-  '<span class="info">AGENTS.DLL</span>       <span class="dim"> 2026-07-01</span>  <span class="output">LLM orchestration, RAG, swarms</span>',
-  '<span class="info">REACT.SYS</span>        <span class="dim"> 2026-07-01</span>  <span class="output">frontend \u2022 UI systems</span>',
-  '<span class="info">DOCKER.COM</span>       <span class="dim"> 2026-07-01</span>  <span class="output">containerization, compose, deploy</span>',
-  '<span class="info">GIT.BIN</span>          <span class="dim"> 2026-07-01</span>  <span class="output">version control, CI/CD</span>',
-  '<span class="info">BASH.EXE</span>         <span class="dim"> 2026-07-01</span>  <span class="output">shell scripting, devops</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">ping sislecv.github.io</span>',
-  '',
-  '<span class="output">Pinging sislecv.github.io [185.199.108.153] with 32 bytes of data:</span>',
-  '<span class="output">Reply from 185.199.108.153: bytes=32 time=12ms TTL=59</span>',
-  '<span class="output">Reply from 185.199.108.153: bytes=32 time=14ms TTL=59</span>',
-  '<span class="output">Reply from 185.199.108.153: bytes=32 time=11ms TTL=59</span>',
-  '<span class="output">Reply from 185.199.108.153: bytes=32 time=13ms TTL=59</span>',
-  '<span class="dim">    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">cat contact.txt</span>',
-  '',
-  '<span class="info">   email</span>  <span class="output">sislecv2@gmail.com</span>',
-  '<span class="info">   github</span> <span class="output">github.com/Sislecv</span>',
-  '<span class="info">    site</span>  <span class="output">sislecv.github.io</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">uptime</span>',
-  '<span class="output">on fire since the dial-up era</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">help</span>',
-  '<span class="dim">Available commands:</span>',
-  '<span class="output">  whoami      display user profile</span>',
-  '<span class="output">  cat         read a file</span>',
-  '<span class="output">  dir         list directory</span>',
-  '<span class="output">  ping        test connectivity</span>',
-  '<span class="output">  uptime      system status</span>',
-  '<span class="output">  help        show this help</span>',
-  '',
-  '<span class="prompt">C:\\&gt;</span> <span class="cmd">_</span><span class="cursor-blink"></span>',
-];
+const CMD={
+  whoami:()=>['sislecv','senior engineer \u2022 ai orchestration'],
+  uptime:()=>['on fire since the dial-up era'],
+  help:()=>[
+    '<span class="dim">C:\\&gt;</span> <span class="cmd">help</span>',
+    '<span class="dim">Available commands:</span>',
+    '  whoami      display user profile',
+    '  cat         read a file (profile.txt | contact.txt)',
+    '  dir         list directory (/skills/)',
+    '  ping        test connectivity (sislecv.github.io)',
+    '  uptime      system status',
+    '  help        show this help',
+    '  cls         clear screen',
+    '  exit        close terminal',
+  ],
+  cls:()=>null,
+  exit:()=>null,
+};
+
+function execCmd(cmd){
+  const parts=cmd.trim().split(/\s+/);
+  const name=parts[0].toLowerCase();
+  const arg=parts.slice(1).join(' ');
+
+  if(name==='whoami') return CMD.whoami();
+  if(name==='uptime') return CMD.uptime();
+  if(name==='help'||name==='?') return CMD.help();
+  if(name==='cls') return CMD.cls();
+  if(name==='exit') return CMD.exit();
+
+  if(name==='cat'){
+    if(arg==='profile.txt') return [
+      'Systems builder with a taste for terminal aesthetics.',
+      'Engineer at the intersection of infrastructure, automation,',
+      'and agentic AI. Ships production code, designs protocols,',
+      'orchestrates swarms of sub-agents \u2014 one tty at a time.',
+    ];
+    if(arg==='contact.txt') return [
+      '<span class="info">   email</span>  sislecv2@gmail.com',
+      '<span class="info">   github</span> github.com/Sislecv',
+      '<span class="info">    site</span>  sislecv.github.io',
+    ];
+    return [`file not found: ${arg}`];
+  }
+
+  if(name==='dir'){
+    if(arg==='/skills/'||arg==='') return [
+      '<span class="dim"> Directory of C:\\SKILLS</span>',
+      '',
+      'PYTHON.EXE    infra, tooling, automation',
+      'NODEJS.EXE    runtimes, APIs, pipelines',
+      'AGENTS.DLL    LLM orchestration, RAG, swarms',
+      'REACT.SYS     frontend \u2022 UI systems',
+      'DOCKER.COM    containerization, compose, deploy',
+      'GIT.BIN       version control, CI/CD',
+      'BASH.EXE      shell scripting, devops',
+    ];
+    return [`directory not found: ${arg}`];
+  }
+
+  if(name==='ping'){
+    const host=arg||'sislecv.github.io';
+    return [
+      `Pinging ${host} [185.199.108.153] with 32 bytes of data:`,
+      'Reply from 185.199.108.153: bytes=32 time=12ms TTL=59',
+      'Reply from 185.199.108.153: bytes=32 time=14ms TTL=59',
+      'Reply from 185.199.108.153: bytes=32 time=11ms TTL=59',
+      'Reply from 185.199.108.153: bytes=32 time=13ms TTL=59',
+      '<span class="dim">    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),</span>',
+    ];
+  }
+
+  return [`unknown command: ${name}. type help`];
+}
+
+function print(lines){
+  if(!lines)return;
+  for(const l of lines) termBody.innerHTML+=l+'\n';
+  termBody.scrollTop=termBody.scrollHeight;
+}
+
+function printPrompt(){
+  termBody.innerHTML+='<span class="prompt">C:\\&gt;</span> <span class="cmd">'+escHtml(inputLine)+'</span><span class="cursor-blink"></span>';
+  termBody.scrollTop=termBody.scrollHeight;
+  // Remove trailing cursor for next render
+}
+
+function escHtml(s){return s.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function renderLine(){
+  const lines=termBody.innerHTML.split('\n');
+  while(lines.length&&lines[lines.length-1].trim()==='')lines.pop();
+  if(lines.length&&lines[lines.length-1].includes('prompt'))lines.pop();
+  termBody.innerHTML=lines.join('\n')+(lines.length?'\n':'');
+  termBody.innerHTML+='<span class="prompt">C:\\&gt;</span> <span class="cmd">'+escHtml(inputLine)+'</span><span class="cursor-blink"></span>';
+  termBody.scrollTop=termBody.scrollHeight;
+}
+
+function submitCmd(){
+  const cmd=inputLine.trim();
+  if(!cmd){inputLine='';renderLine();return}
+  cmdHistory.push(cmd);histIdx=cmdHistory.length;
+  // Remove the prompt line to replace with submitted command
+  const parts=termBody.innerHTML.split('\n');
+  if(parts.length&&parts[parts.length-1].includes('prompt'))parts.pop();
+  if(parts.length&&parts[parts.length-1].trim()==='')parts.pop();
+  termBody.innerHTML=parts.join('\n')+(parts.length?'\n':'');
+  termBody.innerHTML+='<span class="prompt">C:\\&gt;</span> <span class="cmd">'+escHtml(cmd)+'</span>\n';
+  inputLine='';
+  const result=execCmd(cmd);
+  if(result===null){ // cls
+    termBody.innerHTML='';renderLine();return;
+  }
+  print(result);
+  renderLine();
+}
+
+function handleKey(e){
+  if(!termOpen)return;
+  if(e.key==='Escape'){closeTerminal();return}
+  e.preventDefault();
+  if(e.key==='Enter'){submitCmd();return}
+  if(e.key==='Backspace'){
+    if(inputLine.length>0)inputLine=inputLine.slice(0,-1);
+    renderLine();return;
+  }
+  if(e.key==='ArrowUp'){
+    if(cmdHistory.length===0)return;
+    histIdx=Math.max(0,histIdx-1);
+    inputLine=cmdHistory[histIdx];
+    renderLine();return;
+  }
+  if(e.key==='ArrowDown'){
+    histIdx=Math.min(cmdHistory.length,histIdx+1);
+    inputLine=histIdx>=cmdHistory.length?'':cmdHistory[histIdx];
+    renderLine();return;
+  }
+  if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    inputLine+=e.key;renderLine();
+  }
+}
 
 function openTerminal(){
   if(termOpen)return;
@@ -422,9 +507,21 @@ function openTerminal(){
   termOverlay.classList.add('open');
   termScreen.classList.add('flash');
   setTimeout(()=>termScreen.classList.remove('flash'),500);
-  termBody.innerHTML='';let i=0;
-  (function type(){if(i>=TERM.length)return;termBody.innerHTML+=TERM[i]+'\n';i++;termBody.scrollTop=termBody.scrollHeight;setTimeout(type,i===TERM.length-1?300:25+Math.random()*25)})();
+  termBody.innerHTML='';
   hintAlpha=0;
+
+  // Boot sequence
+  print([
+    '',
+    '<span class="dim">Microsoft(R) MS-DOS 6.22</span>',
+    '<span class="dim">   (C)Copyright Microsoft Corp 1981-1995.</span>',
+    '',
+  ]);
+  // Show help automatically
+  print(CMD.help());
+  renderLine();
+  termBody.style.display='block';
+  termBody.focus();
 }
 
 function closeTerminal(){termOpen=false;termOverlay.classList.remove('open')}
@@ -433,7 +530,7 @@ C.addEventListener('click',openTerminal);
 termClose.addEventListener('click',e=>{e.stopPropagation();closeTerminal()});
 termMin.addEventListener('click',e=>{e.stopPropagation();closeTerminal()});
 termOverlay.addEventListener('click',e=>{if(e.target===termOverlay)closeTerminal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTerminal()});
+document.addEventListener('keydown',handleKey);
 
 requestAnimationFrame(render);
 </script>
