@@ -360,22 +360,34 @@ const termMin=document.getElementById('termMin');
 let termOpen=false,inputLine='',cmdHistory=[],histIdx=-1;
 
 const CMD={
-  whoami:()=>['sislecv','senior engineer \u2022 ai orchestration'],
-  uptime:()=>['on fire since the dial-up era'],
   help:()=>[
-    '<span class="dim">C:\\&gt;</span> <span class="cmd">help</span>',
     '<span class="dim">Available commands:</span>',
-    '  whoami      display user profile',
-    '  cat         read a file (profile.txt | contact.txt)',
-    '  dir         list directory (/skills/)',
-    '  ping        test connectivity (sislecv.github.io)',
-    '  uptime      system status',
-    '  help        show this help',
-    '  cls         clear screen',
-    '  exit        close terminal',
+    '',
+    '  whoami               display user profile',
+    '  ver                  display DOS version',
+    '  date | time          show current date/time',
+    '  echo &lt;text&gt;          display a message',
+    '  cls                  clear screen',
+    '',
+    '  cat &lt;file&gt;           read a file',
+    '  type &lt;file&gt;          alias for cat',
+    '  dir [path]           list directory',
+    '  cd                   show current directory',
+    '  tree                 directory tree',
+    '',
+    '  mem                  show memory info',
+    '  vol                  show volume label',
+    '  path                 show PATH',
+    '  systeminfo           system info',
+    '  netstat              network status',
+    '',
+    '  ping &lt;host&gt;          test connectivity',
+    '  uptime               system status',
+    '  help | ?             show this help',
+    '',
+    '  exit                 close terminal',
   ],
-  cls:()=>null,
-  exit:()=>null,
+  cls:()=>null, exit:()=>null,
 };
 
 function execCmd(cmd){
@@ -383,40 +395,139 @@ function execCmd(cmd){
   const name=parts[0].toLowerCase();
   const arg=parts.slice(1).join(' ');
 
-  if(name==='whoami') return CMD.whoami();
-  if(name==='uptime') return CMD.uptime();
   if(name==='help'||name==='?') return CMD.help();
-  if(name==='cls') return CMD.cls();
-  if(name==='exit') return CMD.exit();
+  if(name==='cls') return null;
+  if(name==='exit') return null;
 
-  if(name==='cat'){
-    if(arg==='profile.txt') return [
+  if(name==='whoami') return [
+    'sislecv',
+    'senior engineer \u2022 ai orchestration',
+  ];
+
+  if(name==='ver') return [
+    'MS-DOS Version 6.22',
+    '  (C)Copyright Microsoft Corp 1981-1995.',
+    '  SISLEVC 5151 Personal Edition',
+  ];
+
+  if(name==='date') return [
+    `Current date is ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`,
+  ];
+
+  if(name==='time') return [
+    `Current time is ${new Date().toLocaleTimeString('en-US')}`,
+  ];
+
+  if(name==='echo') return [arg||'ECHO is on.'];
+
+  if(name==='vol') return [
+    'Volume in drive C has no label',
+    'Volume Serial Number is 5151-BS0D',
+  ];
+
+  if(name==='mem'){
+    const used=Math.round(Math.random()*128+512);
+    const free=65536-used;
+    return [
+      'Memory Type        Total     Used     Free',
+      '───────────────────────────────────────────',
+      `Conventional       640KB     ${used}KB     ${free}KB`,
+      'Extended           65536KB   0KB      65536KB',
+      '───────────────────────────────────────────',
+      `Total memory       66176KB   ${used}KB    ${640+free}KB`,
+    ];
+  }
+
+  if(name==='path') return ['PATH=C:\\DOS;C:\\WINDOWS;C:\\BATCH'];
+
+  if(name==='cd'||name==='chdir') return ['C:\\'];
+
+  if(name==='tree') return [
+    'C:.',
+    '\u251C\u2500\u2500\u2500DOS',
+    '\u251C\u2500\u2500\u2500SKILLS',
+    '\u2502   PYTHON.EXE',
+    '\u2502   NODEJS.EXE',
+    '\u2502   AGENTS.DLL',
+    '\u2502   REACT.SYS',
+    '\u2502   DOCKER.COM',
+    '\u2502   GIT.BIN',
+    '\u2502   BASH.EXE',
+    '\u251C\u2500\u2500\u2500BATCH',
+    '\u2514\u2500\u2500\u2500TEMP',
+  ];
+
+  if(name==='systeminfo') return [
+    'Host:          SISLEVC 5151',
+    'OS:            MS-DOS 6.22',
+    'CPU:           Sisyphus Engine',
+    'Memory:        64MB EMS + 640KB Conv',
+    'Drive C:       2GB, 1.8GB free',
+    'Shell:         COMMAND.COM',
+    'Terminal:      VT323 80x25',
+    'User:          s Islecv',
+  ];
+
+  if(name==='netstat') return [
+    'Active Connections',
+    '',
+    '  Proto  Local Address     Foreign Address   State',
+    '  TCP    C:23 (TELNET)     github.com:https  ESTABLISHED',
+    '  TCP    C:80 (HTTP)       sislecv.github.io ESTABLISHED',
+    '  UDP    C:53 (DNS)        resolver          LISTENING',
+  ];
+
+  if(name==='cat'||name==='type'){
+    const fn=arg.toLowerCase();
+    if(fn==='profile.txt'||fn==='profile') return [
+      'sislecv / SISLEVC 5151',
+      '',
       'Systems builder with a taste for terminal aesthetics.',
       'Engineer at the intersection of infrastructure, automation,',
       'and agentic AI. Ships production code, designs protocols,',
       'orchestrates swarms of sub-agents \u2014 one tty at a time.',
     ];
-    if(arg==='contact.txt') return [
-      '<span class="info">   email</span>  sislecv2@gmail.com',
-      '<span class="info">   github</span> github.com/Sislecv',
-      '<span class="info">    site</span>  sislecv.github.io',
+    if(fn==='contact.txt'||fn==='contact') return [
+      '  email:  s Islecv2@gmail.com',
+      '  github: github.com/Sislecv',
+      '  site:   s Islecv.github.io',
     ];
-    return [`file not found: ${arg}`];
+    if(fn==='')
+    return ['The syntax of the command is incorrect.'];
+    return [`File not found: ${arg}`];
   }
 
   if(name==='dir'){
-    if(arg==='/skills/'||arg==='') return [
-      '<span class="dim"> Directory of C:\\SKILLS</span>',
-      '',
-      'PYTHON.EXE    infra, tooling, automation',
-      'NODEJS.EXE    runtimes, APIs, pipelines',
-      'AGENTS.DLL    LLM orchestration, RAG, swarms',
-      'REACT.SYS     frontend \u2022 UI systems',
-      'DOCKER.COM    containerization, compose, deploy',
-      'GIT.BIN       version control, CI/CD',
-      'BASH.EXE      shell scripting, devops',
-    ];
-    return [`directory not found: ${arg}`];
+    if(!arg||arg==='.'||arg==='\\'||arg==='/skills/'||arg==='c:\\'){
+      return [
+        '<span class="dim"> Directory of C:\\</span>',
+        '',
+        'DOS       &lt;DIR&gt;    01-07-26',
+        'SKILLS    &lt;DIR&gt;    01-07-26  <span class="dim">&lt;-- try "dir /skills/"</span>',
+        'BATCH     &lt;DIR&gt;    01-07-26',
+        'TEMP      &lt;DIR&gt;    01-07-26',
+        'PROFILE   TXT      214 01-07-26',
+        'CONTACT   TXT       96 01-07-26',
+        'CONFIG    SYS      156 01-07-26',
+        'AUTOEXEC  BAT      128 01-07-26',
+        '        8 File(s)',
+      ];
+    }
+    if(arg==='/skills'||arg==='/skills/'||arg==='skills'){
+      return [
+        '<span class="dim"> Directory of C:\\SKILLS</span>',
+        '',
+        'PYTHON.EXE    infra, tooling, automation',
+        'NODEJS.EXE    runtimes, APIs, pipelines',
+        'AGENTS.DLL    LLM orchestration, RAG, swarms',
+        'REACT.SYS     frontend \u2022 UI systems',
+        'DOCKER.COM    containerization, compose, deploy',
+        'GIT.BIN       version control, CI/CD',
+        'BASH.EXE      shell scripting, devops',
+        '        7 File(s)',
+      ];
+    }
+    return [`Invalid path: ${arg}`];
   }
 
   if(name==='ping'){
@@ -431,7 +542,9 @@ function execCmd(cmd){
     ];
   }
 
-  return [`unknown command: ${name}. type help`];
+  if(name==='uptime') return ['on fire since the dial-up era'];
+
+  return [`Unknown command: ${name}`];
 }
 
 function print(lines){
