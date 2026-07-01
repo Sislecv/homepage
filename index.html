@@ -417,11 +417,12 @@ async function bootDosBox(){
     if(typeof window.Dos==='undefined'){
       await new Promise((resolve,reject)=>{
         const s=document.createElement('script');
+        s.type='module';
         s.src='dos/js-dos.js';
         s.onload=resolve;s.onerror=()=>reject(new Error('js-dos load failed'));
         document.head.appendChild(s);
       });
-      await new Promise(r=>setTimeout(r,200));
+      await new Promise(r=>setTimeout(r,400));
     }
     if(typeof window.Dos==='undefined')throw new Error('Dos not loaded');
     clearInterval(dotInt);
