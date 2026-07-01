@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sislecv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000011}
+canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crosshair}
+.scanlines{
+  position:fixed;inset:0;z-index:10;pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px, transparent 1px, transparent 3px);
+}
+.name-overlay{
+  position:fixed;bottom:32px;left:0;right:0;z-index:6;text-align:center;pointer-events:none;
+  font:22px 'VT323','Courier New',monospace;letter-spacing:3px;color:#ffb000;
+  text-shadow:0 0 10px rgba(255,176,0,.5),0 0 20px rgba(255,140,0,.25);
+}
+.subtitle{font:14px 'VT323','Courier New',monospace;letter-spacing:2px;color:#c80;opacity:.7;margin-top:2px}
+
+/* ── CRT Monitor Shell ──────────────────────────────────────────── */
+.term-overlay{
+  position:fixed;inset:0;z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(2px);
+}
+.term-overlay.open{opacity:1;pointer-events:auto}
+
+.term-monitor{
+  position:relative;
+  background:#c8bfaa;
+  border:6px solid #b8af9a;
+  border-radius:18px;
+  padding:18px 14px 10px 14px;
+  box-shadow:
+    inset 0 0 30px rgba(0,0,0,.15),
+    0 0 0 4px #d8d0bc,
+    0 0 0 8px #a09884,
+    0 0 0 10px #c8bfaa,
+    0 8px 40px rgba(0,0,0,.5);
+  animation:monitorIn .35s ease-out;
+}
+@keyframes monitorIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+
+.term-monitor::before{
+  content:'';position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  width:60%;height:4px;
+  background:repeating-linear-gradient(90deg, #888070 0px, #888070 3px, #a09888 3px, #a09888 6px);
+  border-radius:2px;
+}
+
+.term-monitor::after{
+  content:'';position:absolute;bottom:-18px;right:24px;
+  width:7px;height:7px;border-radius:50%;
+  background:#0f0;
+  box-shadow:0 0 6px #0f0,0 0 14px rgba(0,255,0,.5);
+  animation:ledPulse 2s ease-in-out infinite;
+}
+@keyframes ledPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.term-brand{
+  position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font:10px 'VT323',monospace;color:#888070;letter-spacing:2px;
+}
+
+.term-screen{
+  background:#0a0a08;
+  border:3px solid #1a1a14;
+  border-radius:6px;
+  overflow:hidden;
+  position:relative;
+  width:90vw;max-width:600px;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.7),inset 0 0 2px rgba(0,255,0,.03);
+}
+.term-screen::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,
+    rgba(0,0,0,.1) 0px,rgba(0,0,0,.1) 2px,
+    rgba(0,10,0,.03) 2px,rgba(0,10,0,.03) 4px);
+}
+.term-screen::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:4;
+  background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.45) 100%);
+}
+
+.term-title{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 10px;
+  background:#b8af9a;
+  border-bottom:2px solid #a09884;
+  font:14px 'VT323',monospace;color:#332e22;letter-spacing:1px;
+  position:relative;z-index:6;
+}
+.term-title .btns{display:flex;gap:4px}
+.term-title .btn{
+  width:18px;height:18px;background:#a09884;border:1px solid #8a8270;
+  color:#5a5240;font:12px 'VT323',monospace;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;line-height:1;
+}
+.term-title .btn:hover{background:#8a8270;color:#222}
+
+.term-body{
+  padding:12px 16px;
+  font:17px 'VT323','Courier New',monospace;
+  line-height:1.35;
+  color:#8f8;
+  white-space:pre-wrap;
+  min-height:220px;
+  max-height:55vh;
+  overflow-y:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  position:relative;z-index:6;
+  text-shadow:0 0 4px rgba(100,255,100,.25),0 0 8px rgba(80,220,80,.12);
+}
+.term-body::-webkit-scrollbar{display:none}
+.term-body .prompt{color:#bfb}
+.term-body .cmd{color:#fff}
+.term-body .output{color:#7d7}
+.term-body .info{color:#6a6}
+.term-body .dim{color:#3a3}
+.term-body .warn{color:#ff6}
+.cursor-blink{
+  display:inline-block;width:9px;height:18px;
+  background:#8f8;
+  animation:blink .9s steps(1) infinite;
+  vertical-align:text-bottom;margin-left:1px;
+}
+@keyframes blink{50%{opacity:0}}
+
+@keyframes screenFlash{
+  0%{background:#fff}15%{background:#afb}40%{background:#0a0a08}100%{background:#0a0a08}
+}
+.term-screen.flash{animation:screenFlash .5s ease-out}
+
+@media(max-width:640px){
+  .name-overlay{font-size:16px}
+  .term-body{font-size:15px;padding:10px}
+  .term-monitor{padding:12px 8px 6px 8px;border-width:4px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="scanlines"></div>
+<div class="name-overlay">
+  <div>Sislecv</div>
+  <div class="subtitle">Senior Engineer &amp; AI Orchestrator</div>
+</div>
+
+<div class="term-overlay" id="termOverlay">
+  <div class="term-monitor">
+    <div class="term-screen" id="termScreen">
+      <div class="term-title">
+        <span>&#9612; MS-DOS Prompt</span>
+        <div class="btns">
+          <span class="btn" id="termMin" title="Minimize">_</span>
+          <span class="btn" id="termClose" title="Close">&#10005;</span>
+        </div>
+      </div>
+      <div class="term-body" id="termBody"></div>
+      <canvas id="dosCanvas" width="720" height="400" style="display:none;width:100%;height:auto;position:relative;z-index:6"></canvas>
+    </div>
+    <div class="term-brand">SISLEVC 5151</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const fade=t=>t*t*t*(t*(t*6-15)+10);
+class Perlin{
+  constructor(s){
+    const p=[...Array(256)].map((_,i)=>i),r=this._rng(s);
+    for(let i=255;i;i--){const j=Math.floor(r()*(i+1));[p[i],p[j]]=[p[j],p[i]]}
+    this.perm=[...p,...p];
+  }
+  _rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  noise(x,y){
+    const X=Math.floor(x)&255,Y=Math.floor(y)&255;
+    const xf=x-Math.floor(x),yf=y-Math.floor(y),u=fade(xf),v=fade(yf);
+    const p=this.perm,aa=p[p[X]+Y],ab=p[p[X]+Y+1],ba=p[p[X+1]+Y],bb=p[p[X+1]+Y+1];
+    const gr=(h,x,y)=>{const h2=h&3;return(h2&1?x:-x)+(h2&2?y:-y)};
+    const L=(a,b,t)=>a+t*(b-a);
+    return L(L(gr(aa,xf,yf),gr(ba,xf-1,yf),u),L(gr(ab,xf,yf-1),gr(bb,xf-1,yf-1),u),v);
+  }
+  fbm(x,y,o=5,l=2,g=.5){let v=0,a=1,f=1,m=0;for(let i=0;i<o;i++){v+=a*this.noise(x*f,y*f);m+=a;a*=g;f*=l}return v/m}
+}
+
+const C=document.getElementById('c'),X=C.getContext('2d');
+C.width=innerWidth;C.height=innerHeight;
+X.fillStyle='#00005f';X.fillRect(0,0,C.width,C.height);
+
+const FS=20,CW=12,CH=24;
+const FONT="'VT323','Courier New',monospace";
+const PN=new Perlin(42);
+let MX=-999,MY=-999,TX=-999,TY=-999,TM=0;
+
+window.addEventListener('resize',()=>{C.width=innerWidth;C.height=innerHeight});
+document.addEventListener('mousemove',e=>{TX=e.clientX;TY=e.clientY});
+document.addEventListener('mouseleave',()=>{TX=-999;TY=-999});
+
+let hintAlpha=0;
+C.addEventListener('mousemove',()=>{hintAlpha=1});
+
+const G=' .:-=+*#%@';
+function nc(v){const t=(v+1)/2;return G[Math.min(9,Math.max(0,~~(t*G.length)))]}
+function styl(v){
+  const t=(v+1)/2;
+  if(t<.15)return{bg:'#00005f',fg:'#444'};
+  if(t<.35)return{bg:'#00005f',fg:'#626'};
+  if(t<.55)return{bg:'#00005f',fg:'#ccc'};
+  if(t<.72)return{bg:'#000087',fg:'#fff'};
+  if(t<.88)return{bg:'#0000af',fg:'#fff'};
+  return{bg:'#0000d7',fg:'#fff'};
+}
+
+const A=[
+  "                          %%%%%#                  ",
+  "            %%%%%########******###%%              ",
+  "            %%==****+==-----::.+##%%              ",
+  "            %%=+####+++=====--:*##%%%             ",
+  "            %%-+***+++======--:*##%%%%            ",
+  "            %#-=+++========---:**#%#%#            ",
+  "            %#-==========----::**#%#%#            ",
+  "            ##:-====--------:::**#%#%#            ",
+  "            ##++++++=======----**###%#            ",
+  "            #%%%%#######*********#%%%#            ",
+  "            ########****##*******#%#             ",
+  "                   =-----------=*                 ",
+  "                 ****++++===-=+*#                 ",
+  "                      %%%###                      ",
+];
+const AR=A.length,AC=A[0].length;
+
+function aCol(ch){
+  const d=' .:-=+*#%@'.indexOf(ch);if(d<0)return null;
+  const t=d/9;
+  if(t<.55){
+    const gt=t/.55;
+    return{r:~~(80-gt*80),g:~~(130+gt*125),b:~~(80-gt*80)};
+  }else{
+    const bt=(t-.55)/.45;
+    return{r:~~(170+bt*85),g:~~(150+bt*75),b:~~(110+bt*65)};
+  }
+}
+
+function proj(rx,ry,rz,aY,aX){
+  const cY=Math.cos(aY),sY=Math.sin(aY),cX=Math.cos(aX),sX=Math.sin(aX);
+  const x1=rx*cY+rz*sY;
+  const z1=-rx*sY+rz*cY;
+  const y2=ry*cX-z1*sX;
+  const z2=ry*sX+z1*cX;
+  const D=2.5,s=D/(D+z2);
+  return{x:x1*s,y:y2*s,z:z2,s};
+}
+
+let rY=0,rX=0,targetRY=0,targetRX=0;
+
+function render(ts){
+  try{
+    const W=C.width,H=C.height;
+    if(!W||!H){requestAnimationFrame(render);return}
+    MX+=(TX-MX)*.08;MY+=(TY-MY)*.08;TM=ts*.0003;
+    if(TX>-100&&TY>-100){targetRY=(TX/W-.5)*Math.PI*.7;targetRX=-(TY/H-.5)*Math.PI*.35}
+    rY+=(targetRY-rY)*.04;rX+=(targetRX-rX)*.04;
+
+    const cols=Math.ceil(W/CW),rows=Math.ceil(H/CH);
+    const sc=.016,cxB=cols/2,cyB=rows/2;
+    const map=new Float32Array(rows*cols);
+    for(let py=0;py<rows;py++)for(let px=0;px<cols;px++){
+      let nx=px,ny=py;
+      if(MX>-100&&MY>-100){const mx0=MX/CW,my0=MY/CH,dx=px-mx0,dy=py-my0,dist=Math.hypot(dx,dy);if(dist<60){const str=(1-dist/60)*(2+Math.sin(dist*.4)*.6),ang=Math.atan2(dy,dx);nx+=Math.cos(ang)*str*4;ny+=Math.sin(ang)*str*4}}
+      const dx2=px-cxB,dy2=py-cyB,pulse=Math.sin(Math.hypot(dx2,dy2)*.08-TM*3)*.18;
+      map[py*cols+px]=Math.max(-1,Math.min(1,PN.fbm(nx*sc,ny*sc+TM,5)+pulse));
+    }
+
+    const bt={};
+    for(let py=0;py<rows;py++)for(let px=0;px<cols;px++){
+      const v=map[py*cols+px],s=styl(v),ch=nc(v);
+      const key=s.bg+'|'+s.fg+'|'+ch;
+      if(!bt[key])bt[key]={bg:s.bg,fg:s.fg,ch,cells:[]};
+      bt[key].cells.push([px*CW,py*CH]);
+    }
+    X.fillStyle='#00005f';X.fillRect(0,0,W,H);
+    for(const b of Object.values(bt)){
+      if(!b.ch||b.ch===' ')continue;
+      X.fillStyle=b.bg;for(const[cx,cy]of b.cells)X.fillRect(cx,cy,CW,CH);
+      X.fillStyle=b.fg;X.font=`${FS}px ${FONT}`;X.textBaseline='top';
+      for(const[cx,cy]of b.cells)X.fillText(b.ch,cx,cy+1);
+    }
+
+    const aw=(AC+4)*CW,ah=(AR+2)*CH,ox=W/2,oy=H/2,pts=[];
+    const ED=.22,EL=7;
+    for(let row=0;row<AR;row++)for(let col=0;col<AC;col++){
+      const ch=A[row][col];if(ch===' ')continue;
+      const rx=(col-AC/2)/(AC/2)*.9,ry=(row-AR/2)/(AR/2)*.9;
+      for(let l=0;l<EL;l++){
+        const rz=ED*(l/(EL-1)),p=proj(rx,ry,rz,rY,rX);
+        if(p.s<=.01)continue;
+        pts.push({px:ox+p.x*(aw/2),py:oy+p.y*(ah/2),ch,s:p.s,z:p.z,layer:l});
+      }
+    }
+    pts.sort((a,b)=>a.z-b.z);
+    for(const q of pts){
+      const s=q.s,w=CW*s,h=CH*s;
+      if(q.px+w<0||q.px>W||q.py+h<0||q.py>H)continue;
+      const c=aCol(q.ch);if(!c)continue;
+      const al=Math.min(1,s*1.5),depth=1-q.layer/(EL-1),shade=.35+depth*.65;
+      const br=~~(c.r*.08),bg=~~(c.g*.06),bb=~~(c.b*.04);
+      X.fillStyle=`rgba(${br},${bg},${bb},${.6*al*shade})`;X.fillRect(q.px,q.py,w,h);
+      X.fillStyle=`rgba(${c.r},${c.g},${c.b},${al*shade})`;
+      X.font=`${Math.max(1,~~(FS*s))}px ${FONT}`;X.textBaseline='top';X.fillText(q.ch,q.px,q.py);
+    }
+
+    hintAlpha=Math.max(0,hintAlpha-.002);
+    if(hintAlpha>.01){
+      X.fillStyle=`rgba(255,176,0,${hintAlpha*.55})`;X.font=`13px ${FONT}`;X.textAlign='center';
+      X.fillText('[ click to open terminal ]',W/2,oy+ah/2+CH*2);X.textAlign='start';
+    }
+  }catch(e){console.error('render:',e)}
+  requestAnimationFrame(render);
+}
+
+// ── Terminal ────────────────────────────────────────────────────────
+const termOverlay=document.getElementById('termOverlay');
+const termBody=document.getElementById('termBody');
+const termScreen=document.getElementById('termScreen');
+const termClose=document.getElementById('termClose');
+const termMin=document.getElementById('termMin');
+const dosCanvas=document.getElementById('dosCanvas');
+let termOpen=false,dosInstance=null,dosReady=false;
+
+const TERM=[
+  '',
+  '<span class="dim">Microsoft(R) MS-DOS 6.22</span>',
+  '<span class="dim">   (C)Copyright Microsoft Corp 1981-1995.</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">whoami</span>',
+  '<span class="output">sislecv</span>',
+  '<span class="output">senior engineer \u2022 ai orchestration</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">cat profile.txt</span>',
+  '<span class="output">Systems builder with a taste for terminal aesthetics.</span>',
+  '<span class="output">Engineer at the intersection of infrastructure, automation,</span>',
+  '<span class="output">and agentic AI. Ships production code, designs protocols,</span>',
+  '<span class="output">orchestrates swarms of sub-agents \u2014 one tty at a time.</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">dir /skills/</span>',
+  '',
+  '<span class="dim"> Directory of C:\\SKILLS</span>',
+  '',
+  '<span class="info">PYTHON.EXE</span>       <span class="dim"> 2026-07-01</span>  <span class="output">infra, tooling, automation</span>',
+  '<span class="info">NODEJS.EXE</span>       <span class="dim"> 2026-07-01</span>  <span class="output">runtimes, APIs, pipelines</span>',
+  '<span class="info">AGENTS.DLL</span>       <span class="dim"> 2026-07-01</span>  <span class="output">LLM orchestration, RAG, swarms</span>',
+  '<span class="info">REACT.SYS</span>        <span class="dim"> 2026-07-01</span>  <span class="output">frontend \u2022 UI systems</span>',
+  '<span class="info">DOCKER.COM</span>       <span class="dim"> 2026-07-01</span>  <span class="output">containerization, compose, deploy</span>',
+  '<span class="info">GIT.BIN</span>          <span class="dim"> 2026-07-01</span>  <span class="output">version control, CI/CD</span>',
+  '<span class="info">BASH.EXE</span>         <span class="dim"> 2026-07-01</span>  <span class="output">shell scripting, devops</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">ping sislecv.github.io</span>',
+  '',
+  '<span class="output">Pinging sislecv.github.io [185.199.108.153] with 32 bytes of data:</span>',
+  '<span class="output">Reply from 185.199.108.153: bytes=32 time=12ms TTL=59</span>',
+  '<span class="output">Reply from 185.199.108.153: bytes=32 time=14ms TTL=59</span>',
+  '<span class="output">Reply from 185.199.108.153: bytes=32 time=11ms TTL=59</span>',
+  '<span class="output">Reply from 185.199.108.153: bytes=32 time=13ms TTL=59</span>',
+  '<span class="dim">    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">cat contact.txt</span>',
+  '',
+  '<span class="info">   email</span>  <span class="output">sislecv2@gmail.com</span>',
+  '<span class="info">   github</span> <span class="output">github.com/Sislecv</span>',
+  '<span class="info">    site</span>  <span class="output">sislecv.github.io</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">uptime</span>',
+  '<span class="output">on fire since the dial-up era</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">help</span>',
+  '<span class="dim">Available commands:</span>',
+  '<span class="output">  whoami      display user profile</span>',
+  '<span class="output">  cat         read a file</span>',
+  '<span class="output">  dir         list directory</span>',
+  '<span class="output">  ping        test connectivity</span>',
+  '<span class="output">  uptime      system status</span>',
+  '<span class="output">  help        show this help</span>',
+  '',
+  '<span class="prompt">C:\\&gt;</span> <span class="cmd">_</span><span class="cursor-blink"></span>',
+];
+
+function showFallback(){
+  termBody.innerHTML='';let i=0;
+  (function type(){if(i>=TERM.length)return;termBody.innerHTML+=TERM[i]+'\n';i++;termBody.scrollTop=termBody.scrollHeight;setTimeout(type,i===TERM.length-1?300:25+Math.random()*25)})();
+}
+
+async function bootDosBox(){
+  termBody.style.display='block';
+  termBody.innerHTML='<span class="dim">Booting MS-DOS...</span>\n';
+  termBody.innerHTML+='<span class="dim">Loading</span><span class="dim" id="bootDots">...</span>\n';
+  let dots=0,dotInt=setInterval(()=>{dots=(dots+1)%10;const d=document.getElementById('bootDots');if(d)d.textContent='.'.repeat(Math.min(dots,4));},300);
+  try{
+    if(typeof DosFactory==='undefined'){
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src='dos/js-dos.js';
+        s.onload=resolve;s.onerror=()=>reject(new Error('load failed'));
+        document.head.appendChild(s);
+      });
+    }
+    const w=Math.min(termScreen.clientWidth-6,720);
+    const h=Math.round(w/1.8);
+    dosCanvas.width=w;dosCanvas.height=h;
+    dosInstance=await DosFactory.create(dosCanvas,{wdosboxUrl:'dos/wdosbox.js'});
+    clearInterval(dotInt);
+    termBody.style.display='none';
+    dosCanvas.style.display='block';
+    dosReady=true;hintAlpha=0;
+    dosInstance.run('COMMAND.COM').catch(e=>console.error('DOS:',e));
+  }catch(e){
+    clearInterval(dotInt);
+    console.warn('WASM failed:',e.message);
+    dosCanvas.style.display='none';termBody.style.display='block';
+    termBody.innerHTML+='<span class="warn">WASM load failed. Fallback mode.</span>\n\n';
+    showFallback();
+  }
+}
+
+function openTerminal(){
+  if(termOpen)return;
+  termOpen=true;
+  termOverlay.classList.add('open');
+  termScreen.classList.add('flash');
+  setTimeout(()=>termScreen.classList.remove('flash'),500);
+  if(dosInstance){termOverlay.classList.add('open');dosCanvas.style.display='block';termBody.style.display='none';if(dosReady)dosInstance.resume();hintAlpha=0;return}
+  bootDosBox();
+}
+
+function closeTerminal(){termOpen=false;termOverlay.classList.remove('open');if(dosInstance){dosInstance.pause();dosCanvas.style.display='none'}}
+
+C.addEventListener('click',openTerminal);
+termClose.addEventListener('click',e=>{e.stopPropagation();closeTerminal()});
+termMin.addEventListener('click',e=>{e.stopPropagation();closeTerminal()});
+termOverlay.addEventListener('click',e=>{if(e.target===termOverlay)closeTerminal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTerminal()});
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
