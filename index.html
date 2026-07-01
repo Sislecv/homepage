@@ -142,9 +142,24 @@ canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crossha
 .term-screen.flash{animation:screenFlash .5s ease-out}
 
 @media(max-width:640px){
-  .name-overlay{font-size:16px}
-  .term-body{font-size:15px;padding:10px}
-  .term-monitor{padding:12px 8px 6px 8px;border-width:4px}
+  .name-overlay{font-size:16px;bottom:20px}
+  .subtitle{font-size:12px}
+  .term-body{font-size:14px;padding:8px 10px;min-height:160px}
+  .term-monitor{padding:10px 8px 6px 8px;border-width:4px;border-radius:12px}
+  .term-monitor::before{top:-8px;height:3px}
+  .term-monitor::after{bottom:-14px;width:5px;height:5px}
+  .term-brand{font-size:8px;bottom:-18px}
+  .term-title{padding:1px 5px;font-size:11px}
+  .term-screen{border-width:2px;border-radius:4px}
+}
+@media(max-width:480px){
+  .name-overlay{font-size:13px;bottom:14px}
+  .subtitle{font-size:10px}
+  .term-body{font-size:12px;padding:5px 7px;min-height:120px}
+  .term-monitor{padding:8px 5px 4px 5px;border-width:3px;border-radius:10px}
+  .term-monitor::before{display:none}
+  .term-title{padding:0 4px;font-size:10px}
+  .term-title .btn{width:14px;height:14px;font-size:9px}
 }
 </style>
 </head>
@@ -198,12 +213,19 @@ const C=document.getElementById('c'),X=C.getContext('2d');
 C.width=innerWidth;C.height=innerHeight;
 X.fillStyle='#00005f';X.fillRect(0,0,C.width,C.height);
 
-const FS=20,CW=12,CH=24;
+// Responsive cell sizes
+function cellSizes(w){return w<480?[12,7,14]:w<768?[14,8,17]:[20,12,24]}
+let FS=20,CW=12,CH=24;
+(function(){const c=cellSizes(innerWidth);FS=c[0];CW=c[1];CH=c[2]})();
+
 const FONT="'VT323','Courier New',monospace";
 const PN=new Perlin(42);
 let MX=-999,MY=-999,TX=-999,TY=-999,TM=0;
 
-window.addEventListener('resize',()=>{C.width=innerWidth;C.height=innerHeight});
+window.addEventListener('resize',()=>{
+  C.width=innerWidth;C.height=innerHeight;
+  const c=cellSizes(innerWidth);FS=c[0];CW=c[1];CH=c[2]
+});
 document.addEventListener('mousemove',e=>{TX=e.clientX;TY=e.clientY});
 document.addEventListener('mouseleave',()=>{TX=-999;TY=-999});
 
