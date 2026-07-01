@@ -93,10 +93,10 @@ canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crossha
 
 .term-title{
   display:flex;justify-content:space-between;align-items:center;
-  padding:4px 10px;
+  padding:2px 8px;
   background:#b8af9a;
-  border-bottom:2px solid #a09884;
-  font:14px 'VT323',monospace;color:#332e22;letter-spacing:1px;
+  border-bottom:1px solid #a09884;
+  font:13px 'VT323',monospace;color:#332e22;letter-spacing:1px;
   position:relative;z-index:6;
 }
 .term-title .btns{display:flex;gap:4px}
@@ -180,6 +180,7 @@ canvas{position:fixed;inset:0;z-index:0;image-rendering:pixelated;cursor:crossha
 </div>
 
 <script>
+(function(){
 "use strict";
 
 const fade=t=>t*t*t*(t*(t*6-15)+10);
@@ -457,6 +458,7 @@ termOverlay.addEventListener('click',e=>{if(e.target===termOverlay)closeTerminal
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTerminal()});
 
 requestAnimationFrame(render);
+})();
 </script>
 </body>
 </html>
