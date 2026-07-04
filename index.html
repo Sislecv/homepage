@@ -391,34 +391,8 @@ const CMD={
   cls:()=>null, exit:()=>null,
 };
 
-// ── Music Player ───────────────────────────────────────────────────
+// ── Music Player (BSOD terminal style) ──────────────────────────────
 let musicMode=false,musicPlaying=false,musicIdx=0,musicInt=null;
-const MUSIC_LINES=[
-  // Cassette player ASCII art + display
-  '',
-  '<span class="info">  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557  </span>',
-  '<span class="info">  \u2551</span>  <span class="warn">\u25b6</span> <span class="cmd">RETRO CASSETTE DECK</span>      <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510</span>   <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u2502</span>  <span class="cmd" id="musicDisplay">PAUSED      </span>  <span class="dim">\u2502</span>   <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518</span>   <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2510</span>   <span class="dim">\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2510</span>  <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="warn">\u2502</span>  <span class="warn" id="eqL">||||</span>  <span class="warn">\u2502</span>   <span class="warn">\u2502</span>  <span class="warn" id="eqR">||||</span>  <span class="warn">\u2502</span>  <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2518</span>   <span class="dim">\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2518</span>  <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>                 <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="dim">\u25c0 \u25a0 \u25b6 \u25b6\u25b6</span>          <span class="info">\u2551  </span>',
-  '<span class="info">  \u2551</span>  <span class="output">PREV PLAY NEXT FWD</span>    <span class="info">\u2551  </span>',
-  '<span class="info">  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d  </span>',
-  '',
-  '<span class="dim">  Now Playing:</span>',
-  '<span class="warn" id="musicNow">  [PAUSED] 01 - Track 01</span>',
-  '',
-  '<span class="dim">  Playlist:</span>',
-  '<span class="output" id="musicPlaylist">  01  Track 01\n  02  Track 02\n  03  Track 03\n  04  Track 04\n  05  Track 05</span>',
-  '',
-  '<span class="dim">  [Space] Play/Pause  [N] Next  [P] Prev  [Q] Exit</span>',
-  '',
-];
-
 const SONGS=[
   '01 - Terminal Dreams',
   '02 - Perlin Nocturne',
@@ -433,54 +407,49 @@ const SONGS=[
 ];
 
 function renderMusicPlayer(){
-  let html='';
-  // Cassette deck
-  for(const l of MUSIC_LINES) html+=l+'\n';
-  // Song list
-  const list=[];
+  const t='<span class="dim">\u2502</span>'; // vertical pipe separator
+  let h='';
+  h+=` ${t} <span class="cmd">SISLEVC 5151 AUDIO PLAYER</span>         ${t}\n`;
+  h+=` ${t} ${'-'.repeat(38)} ${t}\n`;
+  h+=` ${t}  <span class="cmd" id="musicDisplay">[STOPPED]  </span>  <span class="output" id="musicNow">${SONGS[musicIdx]}</span>    ${t}\n`;
+  h+=` ${t} ${'-'.repeat(38)} ${t}\n`;
+  h+=` ${t}  <span class="output" id="eqBar">[ ...................... ]</span>  ${t}\n`;
+  h+=` ${t}  <span class="dim">\u25c0  \u25a0  \u25b6   \u25b6\u25b6</span>            ${t}\n`;
+  h+=` ${t}  <span class="dim">PREV STOP PLAY  FWD</span>         ${t}\n`;
+  h+=` ${t} ${'-'.repeat(38)} ${t}\n\n`;
+  h+=`<span class="dim">  PLAYLIST:</span>\n`;
   for(let i=0;i<SONGS.length;i++){
-    const marker=i===musicIdx?(musicPlaying?'\u25b6':'\u25a0'):' ';
-    list.push(`  ${marker} ${SONGS[i]}`);
+    const m=i===musicIdx?(musicPlaying?'\u25b6':'\u25a0'):' ';
+    h+=`  ${m} <span class="${i===musicIdx?'cmd':'output'}">${SONGS[i]}</span>\n`;
   }
-  html+='<span class="output">'+list.join('\n')+'</span>\n';
-  html+='<span class="dim">  [Space] Play/Pause  [N] Next  [P] Prev  [Q] Exit</span>\n';
-  termBody.innerHTML=html;
+  h+=`\n  <span class="dim">[Space] Play/Pause  [N] Next  [P] Prev  [Q]uit</span>\n`;
+  termBody.innerHTML=h;termBody.scrollTop=0;
   updateMusicNow();
-  termBody.scrollTop=0;
 }
 
 function updateMusicNow(){
   const el=document.getElementById('musicNow');
-  if(el) el.textContent=`  ${musicPlaying?'\u25b6':'[PAUSED]'} ${SONGS[musicIdx]}`;
-  // Update equalizer if playing
+  if(el) el.textContent=SONGS[musicIdx];
+  const dl=document.getElementById('musicDisplay');
+  if(dl) dl.textContent=musicPlaying?'[PLAYING] ':'[STOPPED] ';
   if(musicPlaying) eqBars(); else eqStop();
 }
 
 function eqBars(){
-  const bars='\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588';
-  const lEl=document.getElementById('eqL');
-  const rEl=document.getElementById('eqR');
-  if(!lEl||!rEl)return;
-  // Random bar heights for visualizer
-  const lBars=Math.floor(Math.random()*8);
-  const rBars=Math.floor(Math.random()*8);
-  lEl.textContent=bars.slice(0,lBars)+' '.repeat(Math.max(0,8-lBars));
-  rEl.textContent=bars.slice(0,rBars)+' '.repeat(Math.max(0,8-rBars));
-  const displayEl=document.getElementById('musicDisplay');
-  if(displayEl&&musicPlaying){
-    const states=['PLAYING  ','PLAYING. ','PLAYING..','PLAYING...'];
-    const si=Math.floor(Date.now()/400)%4;
-    displayEl.textContent=states[si];
+  const el=document.getElementById('eqBar');
+  if(!el)return;
+  const chars='\u2591\u2592\u2593\u2588'; // ░▒▓█
+  let bars='';
+  for(let i=0;i<24;i++){
+    const h=Math.floor(Math.random()*4);
+    bars+=h<1?'\u2591':h<2?'\u2592':h<3?'\u2593':'\u2588';
   }
+  el.textContent='['+bars+']';
 }
 
 function eqStop(){
-  const lEl=document.getElementById('eqL');
-  const rEl=document.getElementById('eqR');
-  const displayEl=document.getElementById('musicDisplay');
-  if(lEl) lEl.textContent='        ';
-  if(rEl) rEl.textContent='        ';
-  if(displayEl) displayEl.textContent='PAUSED    ';
+  const el=document.getElementById('eqBar');
+  if(el) el.textContent='[ ...................... ]';
 }
 
 function startMusic(){
@@ -718,7 +687,7 @@ function handleKey(e){
       musicIdx=(musicIdx+1)%SONGS.length;updateMusicNow();
       return;
     }
-    if(e.key==='p'||e.key==='P'||e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    if(e.key==='p'||e.key==='P'){
       musicIdx=(musicIdx-1+SONGS.length)%SONGS.length;updateMusicNow();
       return;
     }
